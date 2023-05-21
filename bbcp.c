@@ -95,6 +95,13 @@ int open_target(const char *usr_src_path, const char *usr_dest_path) {
   int fd;
   stat_t stat_buff;
   int pos;
+  mode_t permissions;
+
+  if (stat(usr_src_path, &stat_buff) == -1){
+    perror(SRC_ER_MSG);
+    return -1;
+  }
+  permissions = stat_buff.st_mode;
 
   pos = filename_pos(usr_src_path);
   if (pos == 0) {
@@ -113,7 +120,7 @@ int open_target(const char *usr_src_path, const char *usr_dest_path) {
     memcpy(dest_path, usr_dest_path, usr_dest_path_len);
     memcpy(dest_path + usr_dest_path_len, src_filename, src_filename_len + 1);
 
-    if ((fd = open(dest_path, O_WRONLY | O_CREAT)) == -1) {
+    if ((fd = open(dest_path, O_WRONLY | O_CREAT, permissions)) == -1) {
       perror(DEST_ER_MSG);
     }
 
@@ -127,9 +134,8 @@ int open_target(const char *usr_src_path, const char *usr_dest_path) {
         return -1;
       }
 
-      if ((fd = open(usr_dest_path, O_WRONLY | O_CREAT)) == -1) {
+      if ((fd = open(usr_dest_path, O_WRONLY | O_CREAT, permissions)) == -1) {
         perror(DEST_ER_MSG);
-        return -1;
       }
 
       return fd;
@@ -151,7 +157,7 @@ int open_target(const char *usr_src_path, const char *usr_dest_path) {
         memcpy(dest_path + usr_dest_path_len + 1, src_filename,
                src_filename_len);
 
-        if ((fd = open(dest_path, O_WRONLY | O_CREAT)) == -1) {
+        if ((fd = open(dest_path, O_WRONLY | O_CREAT, permissions)) == -1) {
           perror(DEST_ER_MSG);
         }
 
@@ -164,14 +170,14 @@ int open_target(const char *usr_src_path, const char *usr_dest_path) {
       }
     }
   } else { /* there is a slash in the middle of destination path */
-    if ((stat(usr_dest_path + pos, &stat_buff)) == -1) {
+    if ((stat(usr_dest_path, &stat_buff)) == -1) {
       if (errno != ENOENT) {
         perror(DEST_ER_MSG);
         return -1;
       }
       /* final part of the path does not exist */
 
-      if ((fd = open(usr_dest_path, O_WRONLY | O_CREAT)) == -1) {
+      if ((fd = open(usr_dest_path, O_WRONLY | O_CREAT, permissions)) == -1) {
         perror(DEST_ER_MSG);
       }
       return fd;
@@ -181,9 +187,9 @@ int open_target(const char *usr_src_path, const char *usr_dest_path) {
       dest_path = malloc(usr_dest_path_len + 1 + src_filename_len + 1);
       memcpy(dest_path, usr_dest_path, usr_dest_path_len);
       dest_path[usr_dest_path_len] = '/';
-      memcpy(dest_path, src_filename, src_filename_len);
+      memcpy(dest_path + usr_dest_path_len + 1, src_filename, src_filename_len);
 
-      if ((fd = open(dest_path, O_WRONLY | O_CREAT)) == -1) {
+      if ((fd = open(dest_path, O_WRONLY | O_CREAT, permissions)) == -1) {
         perror(DEST_ER_MSG);
       }
 
