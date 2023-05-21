@@ -1,5 +1,5 @@
-#ifndef BBCP_H
-#define BBCP_H
+#ifndef _BBCP_H_
+#define _BBCP_H_
 
 #define BUFFER_SIZE 64
 #define WRONG_NUMBER_ARGS 1
@@ -12,4 +12,4 @@
 #define DEST_ER_MSG "Couldn't open destination file"
 #define CPY_ER_MSG "Error while copying the file"
 
-#endif
+#endif /* !_BBCP_H_ */
