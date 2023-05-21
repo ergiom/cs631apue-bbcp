@@ -20,7 +20,7 @@ int main(int argc, char const *argv[]) {
   const char *usr_dest_path;
   char buffer[BUFFER_SIZE];
   stat_t stat_buff;
-  int return_flag;
+  int return_flag = 0;
   int src_fd;
   int dest_fd;
   int read_num;
