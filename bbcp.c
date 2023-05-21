@@ -30,7 +30,7 @@ int main(int argc, char const *argv[]) {
   if (argc != 3) {
     printf("Usage: %s source destination\n",
            program_name + filename_pos(argv[0]));
-    exit(WRONG_NUMBER_ARGS);
+    return WRONG_NUMBER_ARGS;
   }
 
   usr_src_path = argv[1];
@@ -39,13 +39,13 @@ int main(int argc, char const *argv[]) {
   /* check source */
   if (stat(usr_src_path, &stat_buff) == -1) {
     perror(SRC_ER_MSG);
-    exit(INVALID_SOURCE);
+    return INVALID_SOURCE;
   }
 
   if (!S_ISREG(stat_buff.st_mode)) {
     printf(SRC_ER_MSG);
     printf("\n");
-    exit(INVALID_SOURCE);
+    return INVALID_SOURCE;
   }
 
   /* open source */
@@ -95,9 +95,10 @@ int open_target(const char *usr_src_path, const char *usr_dest_path) {
   int fd;
   stat_t stat_buff;
   int pos;
+  char *str_end_addr;
   mode_t permissions;
 
-  if (stat(usr_src_path, &stat_buff) == -1){
+  if (stat(usr_src_path, &stat_buff) == -1) {
     perror(SRC_ER_MSG);
     return -1;
   }
@@ -113,20 +114,7 @@ int open_target(const char *usr_src_path, const char *usr_dest_path) {
   usr_dest_path_len = strlen(usr_dest_path);
 
   pos = filename_pos(usr_dest_path);
-  if (pos == usr_dest_path_len) { /* presented destination ends in a /, so it
-                                     surely must be a dir */
-    dest_path = malloc(usr_dest_path_len + 1 +
-                       src_filename_len); /* dest/ + src_file + \0 */
-    memcpy(dest_path, usr_dest_path, usr_dest_path_len);
-    memcpy(dest_path + usr_dest_path_len, src_filename, src_filename_len + 1);
-
-    if ((fd = open(dest_path, O_WRONLY | O_CREAT, permissions)) == -1) {
-      perror(DEST_ER_MSG);
-    }
-
-    free(dest_path);
-    return fd;
-  } else if (pos == 0) { /* presented destination does not conatin slashes */
+  if (pos == 0) { /* presented destination does not conatin slashes */
     if (stat(usr_dest_path, &stat_buff) ==
         -1) { /* presented destination does not exist - it is a file name */
       if (errno != ENOENT) {
@@ -152,10 +140,12 @@ int open_target(const char *usr_src_path, const char *usr_dest_path) {
                      stat_buff.st_mode)) { /* presented destination is a dir */
         dest_path = malloc(usr_dest_path_len + 1 + src_filename_len +
                            1); /* dest_dir_path + / + src_filename + \0 */
-        memcpy(dest_path, usr_dest_path, usr_dest_path_len);
-        dest_path[usr_dest_path_len] = '/';
-        memcpy(dest_path + usr_dest_path_len + 1, src_filename,
-               src_filename_len);
+        str_end_addr = dest_path;
+        memcpy(str_end_addr, usr_dest_path, usr_dest_path_len);
+        str_end_addr += usr_dest_path_len;
+        *str_end_addr = '/';
+        str_end_addr += 1;
+        memcpy(str_end_addr, src_filename, src_filename_len);
 
         if ((fd = open(dest_path, O_WRONLY | O_CREAT, permissions)) == -1) {
           perror(DEST_ER_MSG);
@@ -185,9 +175,14 @@ int open_target(const char *usr_src_path, const char *usr_dest_path) {
 
     if (S_ISDIR(stat_buff.st_mode)) { /* final part of the path is a dir */
       dest_path = malloc(usr_dest_path_len + 1 + src_filename_len + 1);
-      memcpy(dest_path, usr_dest_path, usr_dest_path_len);
-      dest_path[usr_dest_path_len] = '/';
-      memcpy(dest_path + usr_dest_path_len + 1, src_filename, src_filename_len);
+      str_end_addr = dest_path;
+      memcpy(str_end_addr, usr_dest_path, usr_dest_path_len);
+      str_end_addr += usr_dest_path_len;
+      if (*(str_end_addr - 1) != '/') {
+        *str_end_addr = '/';
+        str_end_addr += 1;
+      }
+      memcpy(str_end_addr, src_filename, src_filename_len);
 
       if ((fd = open(dest_path, O_WRONLY | O_CREAT, permissions)) == -1) {
         perror(DEST_ER_MSG);
@@ -211,8 +206,12 @@ int open_target(const char *usr_src_path, const char *usr_dest_path) {
   return -1;
 }
 
+/*
+ * returns position of the last char that is not a '/'
+ * in the case where the are no '/' in the path, returns 0
+ */
 int filename_pos(const char *path) {
-  int i = strlen(path) - 1;
+  int i = strlen(path) - 1; /* skip null byte */
   while (i >= 0 && path[i] != '/') {
     i--;
   }
